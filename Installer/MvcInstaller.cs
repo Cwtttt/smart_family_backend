@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using smart_family_backend.Options;
+using smart_family_backend.Services;
+using smart_family_backend.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +23,10 @@ namespace smart_family_backend.Installer
             configuration.Bind(nameof(jwtSettings), jwtSettings);
             services.AddSingleton(jwtSettings);
 
-            services.AddMvc();
+            services.AddScoped<IIdentityService, IdentityService>();
+
+            services.AddMvc(option => option.EnableEndpointRouting = false)
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
 
             services.AddAuthentication(x =>
             {
