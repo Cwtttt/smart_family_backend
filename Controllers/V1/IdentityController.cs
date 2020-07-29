@@ -21,7 +21,34 @@ namespace smart_family_backend.Controllers.V1
         [HttpPost(ApiRoutes.Identity.Register)]
         public async Task<IActionResult> Register([FromBody] UserRegistrationRequest request)
         {
-            var authResponse = await _identityService.RegisterAsync(request.Email, request.Password);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new AuthFailedResponse
+                {
+                    Errors = ModelState.Values.SelectMany(x => x.Errors.Select(xx => xx.ErrorMessage))
+                });
+            };
+            
+            var authResponse = await _identityService.RegisterAsync(request);
+
+            if (!authResponse.Success)
+            {
+                return BadRequest(new AuthFailedResponse
+                {
+                    Errors = authResponse.Errors
+                });
+            }
+
+            return Ok(new AuthSuccessResponse
+            {
+                Token = authResponse.Token
+            });
+        }
+
+        [HttpPost(ApiRoutes.Identity.Login)]
+        public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
+        {
+            var authResponse = await _identityService.LoginAsync(request);
 
             if (!authResponse.Success)
             {

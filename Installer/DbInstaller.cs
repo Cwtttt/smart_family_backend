@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using smart_family_backend.Data;
+using smart_family_backend.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace smart_family_backend.Installer
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddDefaultIdentity<IdentityUser>()
+            services.AddDefaultIdentity<ApplicationUser>()
                 .AddEntityFrameworkStores<DataContext>();
         }
     }

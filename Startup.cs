@@ -16,6 +16,7 @@ using smart_family_backend.Options;
 using Microsoft.OpenApi.Models;
 using smart_family_backend.Installer;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 
 namespace smart_family_backend
 {
@@ -30,6 +31,9 @@ namespace smart_family_backend
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMvc(option => option.EnableEndpointRouting = false)
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+
             services.InstallServicesInAssembly(Configuration);
         }
 
@@ -60,7 +64,7 @@ namespace smart_family_backend
                 option.SwaggerEndpoint(swaggerOptions.UIEndpoint, swaggerOptions.Description);
             });
 
-            //app.UseMvc();
+            app.UseMvc();
         }
     }
 }

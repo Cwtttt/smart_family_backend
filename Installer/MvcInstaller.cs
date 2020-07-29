@@ -25,9 +25,6 @@ namespace smart_family_backend.Installer
 
             services.AddScoped<IIdentityService, IdentityService>();
 
-            services.AddMvc(option => option.EnableEndpointRouting = false)
-                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
-
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

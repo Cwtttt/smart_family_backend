@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using smart_family_backend.Contracts.V1;
+using smart_family_backend.Contracts.V1.Requests;
 using smart_family_backend.Domain;
+using smart_family_backend.Domain.Entities;
 using smart_family_backend.Options;
 using smart_family_backend.Services.Interfaces;
 using System;
@@ -18,18 +20,17 @@ namespace smart_family_backend.Services
 {
     public class IdentityService : IIdentityService
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly JwtSettings _jwtSettings;
-        public IdentityService(UserManager<IdentityUser> userManager, JwtSettings jwtSettings)
+        public IdentityService(UserManager<ApplicationUser> userManager, JwtSettings jwtSettings)
         {
             _userManager = userManager;
             _jwtSettings = jwtSettings;
         }
 
-        [HttpPost(ApiRoutes.Identity.Register)]
-        public async Task<AuthenticationResult> RegisterAsync(string email, string password)
+        public async Task<AuthenticationResult> RegisterAsync(UserRegistrationRequest user)
         {
-            var existingUser = await _userManager.FindByEmailAsync(email);
+            var existingUser = await _userManager.FindByEmailAsync(user.Email);
 
             if(existingUser != null)
             {
@@ -39,13 +40,17 @@ namespace smart_family_backend.Services
                 };
             }
 
-            var newUser = new IdentityUser
+            var newUser = new ApplicationUser
             {
-                Email = email,
-                UserName = email
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = $"{user.FirstName} {user.LastName}",
+                UserName = user.Email,
+                BirthDate = user.BirthDate,
+                Email = user.Email
             };
 
-            var createUser = await _userManager.CreateAsync(newUser, password);
+            var createUser = await _userManager.CreateAsync(newUser, user.Password);
 
             if (!createUser.Succeeded)
             {
@@ -55,16 +60,48 @@ namespace smart_family_backend.Services
                 };
             }
 
+            return GenerateAuthenticationResultForUser(newUser);
+        }
+
+
+        public async Task<AuthenticationResult> LoginAsync(UserLoginRequest loggedUser)
+        {
+            var user = await _userManager.FindByEmailAsync(loggedUser.Email);
+
+            if (user == null)
+            {
+                return new AuthenticationResult
+                {
+                    Errors = new[] { "User doesn't exist" }
+                };
+            }
+
+            var userHasValidPassword = await _userManager.CheckPasswordAsync(user, loggedUser.Password);
+
+            if (!userHasValidPassword)
+            {
+                return new AuthenticationResult
+                {
+                    Errors = new[] { "User and password combination is wrong" }
+                };
+            }
+
+            return GenerateAuthenticationResultForUser(user);
+        }
+
+
+        private AuthenticationResult GenerateAuthenticationResultForUser(IdentityUser user)
+        {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(JwtRegisteredClaimNames.Sub, newUser.Email),
+                    new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Email, newUser.Email),
-                    new Claim("id", newUser.Id)
+                    new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                    new Claim("id", user.Id)
                 }),
                 Expires = DateTime.UtcNow.AddHours(2),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
